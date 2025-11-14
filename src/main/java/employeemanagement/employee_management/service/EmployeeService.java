@@ -2,12 +2,16 @@ package employeemanagement.employee_management.service;
 
 import employeemanagement.employee_management.dto.EmployeeDTO;
 import employeemanagement.employee_management.model.Employee;
+import employeemanagement.employee_management.model.Department;
 import employeemanagement.employee_management.repository.EmployeeRepository;
+import employeemanagement.employee_management.repository.DepartmentRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -15,9 +19,11 @@ import java.util.Optional;
  * Demonstrates Dependency Injection with Constructor Injection (recommended)
  */
 @Service
+@Transactional
 public class EmployeeService {
 
     private final EmployeeRepository employeeRepository;
+    private final DepartmentRepository departmentRepository;
     private final UtilityService utilityService;
     private final PasswordEncoder passwordEncoder;
     private final ModelMapper modelMapper;
@@ -29,11 +35,13 @@ public class EmployeeService {
      */
     public EmployeeService(
             EmployeeRepository employeeRepository,
+            DepartmentRepository departmentRepository,
             UtilityService utilityService,
             PasswordEncoder passwordEncoder,
             ModelMapper modelMapper
     ) {
         this.employeeRepository = employeeRepository;
+        this.departmentRepository = departmentRepository;
         this.utilityService = utilityService;
         this.passwordEncoder = passwordEncoder;
         this.modelMapper = modelMapper;
@@ -72,6 +80,7 @@ public class EmployeeService {
      * Get employee by ID
      */
     public Optional<Employee> getEmployeeById(String id) {
+        Objects.requireNonNull(id, "Employee id must not be null");
         return employeeRepository.findById(id);
     }
 
@@ -83,9 +92,62 @@ public class EmployeeService {
     }
 
     /**
+     * Search employees by optional name and/or department name filters
+     */
+    public List<Employee> searchEmployees(String name, String departmentName) {
+        String sanitizedName = null;
+        String sanitizedDepartment = null;
+        boolean hasName = false;
+        boolean hasDepartment = false;
+
+        if (name != null) {
+            String trimmed = name.trim();
+            if (!trimmed.isEmpty()) {
+                sanitizedName = trimmed;
+                hasName = true;
+            }
+        }
+
+        if (departmentName != null) {
+            String trimmed = departmentName.trim();
+            if (!trimmed.isEmpty()) {
+                sanitizedDepartment = trimmed;
+                hasDepartment = true;
+            }
+        }
+
+        if (!hasName && !hasDepartment) {
+            return getAllEmployees();
+        }
+
+        if (hasName && hasDepartment) {
+            return employeeRepository
+                    .findByNameContainingIgnoreCaseAndDepartment_NameContainingIgnoreCase(
+                            sanitizedName,
+                            sanitizedDepartment
+                    );
+        }
+
+        if (hasName) {
+            return employeeRepository.findByNameContainingIgnoreCase(sanitizedName);
+        }
+
+        return employeeRepository.findByDepartment_NameContainingIgnoreCase(sanitizedDepartment);
+    }
+
+    /**
      * Get employees by department
      */
-    public List<Employee> getEmployeesByDepartment(String department) {
+    public List<Employee> getEmployeesByDepartment(Long departmentId) {
+        return employeeRepository.findByDepartmentId(departmentId);
+    }
+
+    /**
+     * Get employees by department name
+     */
+    public List<Employee> getEmployeesByDepartmentName(String departmentName) {
+        Department department = departmentRepository.findByName(departmentName)
+            .orElseThrow(() -> new IllegalArgumentException("Department not found: " + departmentName));
         return employeeRepository.findByDepartment(department);
     }
 
@@ -93,6 +155,7 @@ public class EmployeeService {
      * Update employee
      */
     public Employee updateEmployee(String id, Employee updatedEmployee) {
+        Objects.requireNonNull(id, "Employee id must not be null");
         Optional<Employee> existing = employeeRepository.findById(id);
 
         if (existing.isEmpty()) {
@@ -124,7 +187,12 @@ public class EmployeeService {
      * Delete employee
      */
     public boolean deleteEmployee(String id) {
-        return employeeRepository.deleteById(id);
+        Objects.requireNonNull(id, "Employee id must not be null");
+        if (employeeRepository.existsById(id)) {
+            employeeRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 
     /**

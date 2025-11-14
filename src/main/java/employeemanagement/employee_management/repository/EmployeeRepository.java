@@ -1,99 +1,57 @@
 package employeemanagement.employee_management.repository;
 
 import employeemanagement.employee_management.model.Employee;
+import employeemanagement.employee_management.model.Department;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * EmployeeRepository - Repository layer for Employee data access
- * Demonstrates @Repository annotation
- *
- * In a real application, this would interact with a database.
- * For this demo, we use an in-memory Map.
+ * Using Spring Data JPA for database operations
  */
 @Repository
-public class EmployeeRepository {
-
-    // In-memory storage (simulating database)
-    private final Map<String, Employee> employeeStore = new ConcurrentHashMap<>();
+public interface EmployeeRepository extends JpaRepository<Employee, String> {
 
     /**
-     * Save or update an employee
-     *
-     * @param employee Employee to save
-     * @return Saved employee
+     * Find employee by email
      */
-    public Employee save(Employee employee) {
-        employeeStore.put(employee.getId(), employee);
-        return employee;
-    }
-
-    /**
-     * Find employee by ID
-     *
-     * @param id Employee ID
-     * @return Optional containing employee if found
-     */
-    public Optional<Employee> findById(String id) {
-        return Optional.ofNullable(employeeStore.get(id));
-    }
-
-    /**
-     * Find all employees
-     *
-     * @return List of all employees
-     */
-    public List<Employee> findAll() {
-        return new ArrayList<>(employeeStore.values());
-    }
+    Optional<Employee> findByEmail(String email);
 
     /**
      * Find employees by department
-     *
-     * @param department Department name
-     * @return List of employees in the department
      */
-    public List<Employee> findByDepartment(String department) {
-        return employeeStore.values().stream()
-            .filter(emp -> emp.getDepartment() != null && emp.getDepartment().equalsIgnoreCase(department))
-            .toList();
-    }
+    List<Employee> findByDepartment(Department department);
 
     /**
-     * Delete employee by ID
-     *
-     * @param id Employee ID
-     * @return true if deleted, false if not found
+     * Find employees by department ID
      */
-    public boolean deleteById(String id) {
-        return employeeStore.remove(id) != null;
-    }
+    List<Employee> findByDepartmentId(Long departmentId);
 
     /**
-     * Check if employee exists
-     *
-     * @param id Employee ID
-     * @return true if exists
+     * Find employees by position
      */
-    public boolean existsById(String id) {
-        return employeeStore.containsKey(id);
-    }
+    List<Employee> findByPosition(String position);
 
     /**
-     * Count all employees
-     *
-     * @return Total number of employees
+     * Find employees by name containing (case-insensitive search)
      */
-    public long count() {
-        return employeeStore.size();
-    }
+    List<Employee> findByNameContainingIgnoreCase(String name);
 
     /**
-     * Delete all employees
+     * Find employees by department name (case-insensitive)
      */
-    public void deleteAll() {
-        employeeStore.clear();
-    }
+    List<Employee> findByDepartment_NameContainingIgnoreCase(String departmentName);
+
+    /**
+     * Find employees by name and department name (case-insensitive)
+     */
+    List<Employee> findByNameContainingIgnoreCaseAndDepartment_NameContainingIgnoreCase(String name, String departmentName);
+
+    /**
+     * Check if employee exists by email
+     */
+    boolean existsByEmail(String email);
 }
