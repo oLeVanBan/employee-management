@@ -1,6 +1,8 @@
 package employeemanagement.employee_management.controller;
 
 import employeemanagement.employee_management.config.AppConfig.AppMetadata;
+import employeemanagement.employee_management.dto.EmployeeDTO;
+import employeemanagement.employee_management.mapper.DtoMapper;
 import employeemanagement.employee_management.model.Employee;
 import employeemanagement.employee_management.service.EmployeeService;
 import employeemanagement.employee_management.service.UtilityService;
@@ -25,6 +27,7 @@ public class EmployeeController {
     // Constructor Injection - Recommended approach
     private final EmployeeService employeeService;
     private final UtilityService utilityService;
+    private final DtoMapper dtoMapper;
 
     // Field Injection using @Autowired - Less preferred but shown for demonstration
     @Autowired
@@ -34,9 +37,10 @@ public class EmployeeController {
      * Constructor Injection
      * Spring automatically injects the required beans
      */
-    public EmployeeController(EmployeeService employeeService, UtilityService utilityService) {
+    public EmployeeController(EmployeeService employeeService, UtilityService utilityService, DtoMapper dtoMapper) {
         this.employeeService = employeeService;
         this.utilityService = utilityService;
+        this.dtoMapper = dtoMapper;
     }
 
     /**
@@ -58,23 +62,26 @@ public class EmployeeController {
      * POST /api/employees
      */
     @PostMapping
-    public ResponseEntity<Employee> createEmployee(@RequestBody Employee employee) {
+    public ResponseEntity<EmployeeDTO> createEmployee(@RequestBody Employee employee) {
         try {
             Employee created = employeeService.createEmployee(employee);
-            return ResponseEntity.status(HttpStatus.CREATED).body(created);
+            return ResponseEntity.status(HttpStatus.CREATED).body(dtoMapper.toEmployeeDTO(created));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         }
     }
 
     /**
-     * Get all employees
-     * GET /api/employees
+     * Get employees with optional search filters
+     * GET /api/employees?name=John&departmentName=IT
      */
     @GetMapping
-    public ResponseEntity<List<Employee>> getAllEmployees() {
-        List<Employee> employees = employeeService.getAllEmployees();
-        return ResponseEntity.ok(employees);
+    public ResponseEntity<List<EmployeeDTO>> getAllEmployees(
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "departmentName", required = false) String departmentName
+    ) {
+        List<Employee> employees = employeeService.searchEmployees(name, departmentName);
+        return ResponseEntity.ok(dtoMapper.toEmployeeDTOList(employees));
     }
 
     /**
@@ -82,20 +89,10 @@ public class EmployeeController {
      * GET /api/employees/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Employee> getEmployeeById(@PathVariable String id) {
+    public ResponseEntity<EmployeeDTO> getEmployeeById(@PathVariable String id) {
         Optional<Employee> employee = employeeService.getEmployeeById(id);
-        return employee.map(ResponseEntity::ok)
+        return employee.map(e -> ResponseEntity.ok(dtoMapper.toEmployeeDTO(e)))
                       .orElse(ResponseEntity.notFound().build());
-    }
-
-    /**
-     * Get employees by department
-     * GET /api/employees/department/{department}
-     */
-    @GetMapping("/department/{department}")
-    public ResponseEntity<List<Employee>> getEmployeesByDepartment(@PathVariable String department) {
-        List<Employee> employees = employeeService.getEmployeesByDepartment(department);
-        return ResponseEntity.ok(employees);
     }
 
     /**
@@ -103,10 +100,10 @@ public class EmployeeController {
      * PUT /api/employees/{id}
      */
     @PutMapping("/{id}")
-    public ResponseEntity<Employee> updateEmployee(@PathVariable String id, @RequestBody Employee employee) {
+    public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable String id, @RequestBody Employee employee) {
         try {
             Employee updated = employeeService.updateEmployee(id, employee);
-            return ResponseEntity.ok(updated);
+            return ResponseEntity.ok(dtoMapper.toEmployeeDTO(updated));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }

@@ -9,18 +9,18 @@ public class EmployeeDTO {
     private String fullName;
     private String email;
     private String contactNumber;
-    private String dept;
+    private DepartmentDTO department;
     private String role;
 
     public EmployeeDTO() {
     }
 
-    public EmployeeDTO(String id, String fullName, String email, String contactNumber, String dept, String role) {
+    public EmployeeDTO(String id, String fullName, String email, String contactNumber, DepartmentDTO department, String role) {
         this.id = id;
         this.fullName = fullName;
         this.email = email;
         this.contactNumber = contactNumber;
-        this.dept = dept;
+        this.department = department;
         this.role = role;
     }
 
@@ -57,12 +57,12 @@ public class EmployeeDTO {
         this.contactNumber = contactNumber;
     }
 
-    public String getDept() {
-        return dept;
+    public DepartmentDTO getDepartment() {
+        return department;
     }
 
-    public void setDept(String dept) {
-        this.dept = dept;
+    public void setDepartment(DepartmentDTO department) {
+        this.department = department;
     }
 
     public String getRole() {
