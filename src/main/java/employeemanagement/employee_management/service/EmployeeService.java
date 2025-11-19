@@ -1,11 +1,11 @@
 package employeemanagement.employee_management.service;
 
-import employeemanagement.employee_management.dto.EmployeeDTO;
+import employeemanagement.employee_management.exception.ResourceNotFoundException;
+import employeemanagement.employee_management.exception.ValidationException;
 import employeemanagement.employee_management.model.Employee;
 import employeemanagement.employee_management.model.Department;
 import employeemanagement.employee_management.repository.EmployeeRepository;
 import employeemanagement.employee_management.repository.DepartmentRepository;
-import org.modelmapper.ModelMapper;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +26,6 @@ public class EmployeeService {
     private final DepartmentRepository departmentRepository;
     private final UtilityService utilityService;
     private final PasswordEncoder passwordEncoder;
-    private final ModelMapper modelMapper;
 
     /**
      * Constructor Injection - Recommended approach for DI
@@ -37,14 +36,12 @@ public class EmployeeService {
             EmployeeRepository employeeRepository,
             DepartmentRepository departmentRepository,
             UtilityService utilityService,
-            PasswordEncoder passwordEncoder,
-            ModelMapper modelMapper
+            PasswordEncoder passwordEncoder
     ) {
         this.employeeRepository = employeeRepository;
         this.departmentRepository = departmentRepository;
         this.utilityService = utilityService;
         this.passwordEncoder = passwordEncoder;
-        this.modelMapper = modelMapper;
     }
 
     /**
@@ -53,10 +50,21 @@ public class EmployeeService {
      * @param employee Employee data
      * @return Created employee
      */
+    @SuppressWarnings("null")
     public Employee createEmployee(Employee employee) {
-        // Generate employee code using UtilityService
-        String employeeCode = utilityService.generateEmployeeCode();
-        employee.setId(employeeCode);
+        employee.setDepartment(resolveDepartment(employee.getDepartment()));
+
+        // If client provided an ID, validate uniqueness; otherwise generate one
+        String providedId = employee.getId();
+        if (providedId != null && !providedId.trim().isEmpty()) {
+            if (employeeRepository.existsById(providedId)) {
+                throw new ValidationException("Validation failed", java.util.Collections.singletonList("id: Employee id '" + providedId + "' already exists"));
+            }
+        } else {
+            // Generate employee code using UtilityService
+            String employeeCode = utilityService.generateEmployeeCode();
+            employee.setId(employeeCode);
+        }
 
         // Format employee name
         String formattedName = utilityService.formatEmployeeName(employee.getName());
@@ -72,16 +80,21 @@ public class EmployeeService {
         if (employee.getEmail() != null && !utilityService.isValidEmail(employee.getEmail())) {
             throw new IllegalArgumentException("Invalid email format: " + employee.getEmail());
         }
+        if (employee.getEmail() != null && employeeRepository.existsByEmail(employee.getEmail())) {
+            throw new ValidationException("Validation failed", java.util.Collections.singletonList("email: Employee email '" + employee.getEmail() + "' already exists"));
+        }
 
-        return employeeRepository.save(employee);
+        Employee savedEmployee = Objects.requireNonNull(
+            employeeRepository.save(employee),
+            "Saved employee must not be null"
+        );
+        return savedEmployee;
     }
 
-    /**
-     * Get employee by ID
-     */
-    public Optional<Employee> getEmployeeById(String id) {
+    public Employee getEmployeeOrThrow(String id) {
         Objects.requireNonNull(id, "Employee id must not be null");
-        return employeeRepository.findById(id);
+        return employeeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
     }
 
     /**
@@ -147,52 +160,55 @@ public class EmployeeService {
      */
     public List<Employee> getEmployeesByDepartmentName(String departmentName) {
         Department department = departmentRepository.findByName(departmentName)
-            .orElseThrow(() -> new IllegalArgumentException("Department not found: " + departmentName));
+            .orElseThrow(() -> new ResourceNotFoundException("Department", "name", departmentName));
         return employeeRepository.findByDepartment(department);
     }
 
     /**
      * Update employee
      */
+    @SuppressWarnings("null")
     public Employee updateEmployee(String id, Employee updatedEmployee) {
         Objects.requireNonNull(id, "Employee id must not be null");
-        Optional<Employee> existing = employeeRepository.findById(id);
+        Employee employee = employeeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
 
-        if (existing.isEmpty()) {
-            throw new IllegalArgumentException("Employee not found with id: " + id);
-        }
-
-        // Keep the same ID
-        updatedEmployee.setId(id);
-
-        // Format name if changed
         if (updatedEmployee.getName() != null) {
-            updatedEmployee.setName(utilityService.formatEmployeeName(updatedEmployee.getName()));
+            employee.setName(utilityService.formatEmployeeName(updatedEmployee.getName()));
         }
 
-        // Format phone if changed
         if (updatedEmployee.getPhone() != null) {
-            updatedEmployee.setPhone(utilityService.formatPhoneNumber(updatedEmployee.getPhone()));
+            employee.setPhone(utilityService.formatPhoneNumber(updatedEmployee.getPhone()));
         }
 
-        // Validate email if changed
-        if (updatedEmployee.getEmail() != null && !utilityService.isValidEmail(updatedEmployee.getEmail())) {
-            throw new IllegalArgumentException("Invalid email format: " + updatedEmployee.getEmail());
+        if (updatedEmployee.getEmail() != null) {
+            if (!utilityService.isValidEmail(updatedEmployee.getEmail())) {
+                throw new IllegalArgumentException("Invalid email format: " + updatedEmployee.getEmail());
+            }
+            employee.setEmail(updatedEmployee.getEmail());
         }
 
-        return employeeRepository.save(updatedEmployee);
+        if (updatedEmployee.getPosition() != null) {
+            employee.setPosition(updatedEmployee.getPosition());
+        }
+
+        if (updatedEmployee.getDepartment() != null) {
+            employee.setDepartment(resolveDepartment(updatedEmployee.getDepartment()));
+        }
+
+        Employee saved = Objects.requireNonNull(
+            employeeRepository.save(employee),
+            "Saved employee must not be null"
+        );
+        return saved;
     }
 
     /**
      * Delete employee
      */
-    public boolean deleteEmployee(String id) {
-        Objects.requireNonNull(id, "Employee id must not be null");
-        if (employeeRepository.existsById(id)) {
-            employeeRepository.deleteById(id);
-            return true;
-        }
-        return false;
+    public void deleteEmployee(String id) {
+        Employee employee = Objects.requireNonNull(getEmployeeOrThrow(null));
+        employeeRepository.delete(employee);
     }
 
     /**
@@ -222,5 +238,15 @@ public class EmployeeService {
      */
     public long getEmployeeCount() {
         return employeeRepository.count();
+    }
+
+    private Department resolveDepartment(Department department) {
+        if (department == null || department.getId() == null) {
+            return null;
+        }
+
+        Long departmentId = Objects.requireNonNull(department.getId(), "Department id must not be null");
+        return departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Department", "id", departmentId));
     }
 }
