@@ -49,6 +49,7 @@
                     <th scope="col">Phone</th>
                     <th scope="col">Department</th>
                     <th scope="col">Position</th>
+                    <th scope="col" class="text-center">Actions</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -59,9 +60,15 @@
                     <td th:text="${employee.contactNumber}">123-456</td>
                     <td th:text="${employee.department != null ? employee.department.name : 'Unassigned'}">IT</td>
                     <td th:text="${employee.role}">Engineer</td>
+                    <td class="text-center text-nowrap">
+                        <a class="btn btn-sm btn-outline-primary me-2" th:href="@{/employees/{id}/edit(id=${employee.id})}">Edit</a>
+                        <form th:action="@{/employees/{id}/delete(id=${employee.id})}" method="post" class="d-inline">
+                            <button class="btn btn-sm btn-outline-danger" type="submit" onclick="return confirm('Delete this employee?');">Delete</button>
+                        </form>
+                    </td>
                 </tr>
                 <tr th:if="${#lists.isEmpty(employees)}">
-                    <td class="text-center text-muted" colspan="6">No employees found.</td>
+                    <td class="text-center text-muted" colspan="7">No employees found.</td>
                 </tr>
                 </tbody>
             </table>

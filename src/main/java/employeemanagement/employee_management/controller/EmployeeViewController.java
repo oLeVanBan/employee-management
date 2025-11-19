@@ -3,6 +3,7 @@ package employeemanagement.employee_management.controller;
 import employeemanagement.employee_management.dto.DepartmentDTO;
 import employeemanagement.employee_management.dto.EmployeeDTO;
 import employeemanagement.employee_management.dto.EmployeeForm;
+import employeemanagement.employee_management.exception.ResourceNotFoundException;
 import employeemanagement.employee_management.exception.ValidationException;
 import employeemanagement.employee_management.mapper.DtoMapper;
 import employeemanagement.employee_management.model.Department;
@@ -16,6 +17,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -95,6 +97,71 @@ public class EmployeeViewController {
         return "redirect:/employees";
     }
 
+    @GetMapping("/{id}/edit")
+    public String showEditForm(@PathVariable String id,
+                               Model model,
+                               RedirectAttributes redirectAttributes) {
+        Employee employee;
+        try {
+            employee = employeeService.getEmployeeOrThrow(id);
+        } catch (ResourceNotFoundException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+            return "redirect:/employees";
+        }
+
+        if (!model.containsAttribute("employeeForm")) {
+            model.addAttribute("employeeForm", toEmployeeForm(employee));
+        }
+        model.addAttribute("departments", getDepartmentOptions());
+        return "employees/edit";
+    }
+
+    @PostMapping("/{id}")
+    public String updateEmployee(@PathVariable String id,
+                                 @Valid @ModelAttribute("employeeForm") EmployeeForm form,
+                                 BindingResult bindingResult,
+                                 RedirectAttributes redirectAttributes,
+                                 Model model) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("departments", getDepartmentOptions());
+            return "employees/edit";
+        }
+
+        form.setId(id);
+        Employee employee = mapFormToEmployee(form);
+        try {
+            employeeService.updateEmployee(id, employee);
+        } catch (ValidationException validationException) {
+            applyServiceErrors(validationException, bindingResult);
+            model.addAttribute("departments", getDepartmentOptions());
+            return "employees/edit";
+        } catch (ResourceNotFoundException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+            return "redirect:/employees";
+        } catch (IllegalArgumentException illegalArgumentException) {
+            String message = illegalArgumentException.getMessage() == null
+                    ? "Unexpected error"
+                    : illegalArgumentException.getMessage();
+            bindingResult.reject("illegalArgument", Objects.requireNonNull(message));
+            model.addAttribute("departments", getDepartmentOptions());
+            return "employees/edit";
+        }
+
+        redirectAttributes.addFlashAttribute("successMessage", "Employee updated successfully");
+        return "redirect:/employees";
+    }
+
+    @PostMapping("/{id}/delete")
+    public String deleteEmployee(@PathVariable String id, RedirectAttributes redirectAttributes) {
+        try {
+            employeeService.deleteEmployee(id);
+            redirectAttributes.addFlashAttribute("successMessage", "Employee deleted successfully");
+        } catch (ResourceNotFoundException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
+        return "redirect:/employees";
+    }
+
     private void applyServiceErrors(ValidationException validationException, BindingResult bindingResult) {
         List<String> errors = validationException.getErrors();
         if (errors == null || errors.isEmpty()) {
@@ -130,6 +197,19 @@ public class EmployeeViewController {
             employee.setDepartment(department);
         }
         return employee;
+    }
+
+    private EmployeeForm toEmployeeForm(Employee employee) {
+        EmployeeForm form = new EmployeeForm();
+        form.setId(employee.getId());
+        form.setName(employee.getName());
+        form.setEmail(employee.getEmail());
+        form.setPhone(employee.getPhone());
+        form.setPosition(employee.getPosition());
+        if (employee.getDepartment() != null) {
+            form.setDepartmentId(employee.getDepartment().getId());
+        }
+        return form;
     }
 
     private List<DepartmentDTO> getDepartmentOptions() {
