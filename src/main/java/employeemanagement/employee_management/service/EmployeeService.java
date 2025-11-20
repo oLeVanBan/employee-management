@@ -6,13 +6,14 @@ import employeemanagement.employee_management.model.Employee;
 import employeemanagement.employee_management.model.Department;
 import employeemanagement.employee_management.repository.EmployeeRepository;
 import employeemanagement.employee_management.repository.DepartmentRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * EmployeeService - Business logic layer for Employee management
@@ -26,6 +27,7 @@ public class EmployeeService {
     private final DepartmentRepository departmentRepository;
     private final UtilityService utilityService;
     private final PasswordEncoder passwordEncoder;
+    private static final Logger logger = LoggerFactory.getLogger(EmployeeService.class);
 
     /**
      * Constructor Injection - Recommended approach for DI
@@ -88,6 +90,7 @@ public class EmployeeService {
             employeeRepository.save(employee),
             "Saved employee must not be null"
         );
+        logger.info("Created employee with id={} and email={}", savedEmployee.getId(), savedEmployee.getEmail());
         return savedEmployee;
     }
 
@@ -200,6 +203,7 @@ public class EmployeeService {
             employeeRepository.save(employee),
             "Saved employee must not be null"
         );
+        logger.info("Updated employee with id={}", saved.getId());
         return saved;
     }
 
@@ -207,8 +211,10 @@ public class EmployeeService {
      * Delete employee
      */
     public void deleteEmployee(String id) {
-        Employee employee = Objects.requireNonNull(getEmployeeOrThrow(null));
+        Objects.requireNonNull(id, "Employee id must not be null");
+        Employee employee = Objects.requireNonNull(getEmployeeOrThrow(id));
         employeeRepository.delete(employee);
+        logger.info("Deleted employee with id={}", id);
     }
 
     /**
