@@ -2,19 +2,21 @@ package employeemanagement.employee_management.controller;
 
 import employeemanagement.employee_management.config.AppConfig.AppMetadata;
 import employeemanagement.employee_management.dto.EmployeeDTO;
+import employeemanagement.employee_management.exception.ValidationException;
 import employeemanagement.employee_management.mapper.DtoMapper;
 import employeemanagement.employee_management.model.Employee;
 import employeemanagement.employee_management.service.EmployeeService;
 import employeemanagement.employee_management.service.UtilityService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * EmployeeController - REST API endpoints for Employee Management
@@ -62,13 +64,14 @@ public class EmployeeController {
      * POST /api/employees
      */
     @PostMapping
-    public ResponseEntity<EmployeeDTO> createEmployee(@RequestBody Employee employee) {
-        try {
-            Employee created = employeeService.createEmployee(employee);
-            return ResponseEntity.status(HttpStatus.CREATED).body(dtoMapper.toEmployeeDTO(created));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build();
+    public ResponseEntity<EmployeeDTO> createEmployee(@Valid @RequestBody Employee employee,
+                                                      BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            throw ValidationException.fromBindingResult(bindingResult);
         }
+
+        Employee created = employeeService.createEmployee(employee);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dtoMapper.toEmployeeDTO(created));
     }
 
     /**
@@ -90,9 +93,8 @@ public class EmployeeController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<EmployeeDTO> getEmployeeById(@PathVariable String id) {
-        Optional<Employee> employee = employeeService.getEmployeeById(id);
-        return employee.map(e -> ResponseEntity.ok(dtoMapper.toEmployeeDTO(e)))
-                      .orElse(ResponseEntity.notFound().build());
+        Employee employee = employeeService.getEmployeeOrThrow(null);
+        return ResponseEntity.ok(dtoMapper.toEmployeeDTO(employee));
     }
 
     /**
@@ -100,13 +102,15 @@ public class EmployeeController {
      * PUT /api/employees/{id}
      */
     @PutMapping("/{id}")
-    public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable String id, @RequestBody Employee employee) {
-        try {
-            Employee updated = employeeService.updateEmployee(id, employee);
-            return ResponseEntity.ok(dtoMapper.toEmployeeDTO(updated));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.notFound().build();
+    public ResponseEntity<EmployeeDTO> updateEmployee(@PathVariable String id,
+                                                      @Valid @RequestBody Employee employee,
+                                                      BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            throw ValidationException.fromBindingResult(bindingResult);
         }
+
+        Employee updated = employeeService.updateEmployee(id, employee);
+        return ResponseEntity.ok(dtoMapper.toEmployeeDTO(updated));
     }
 
     /**
@@ -115,9 +119,8 @@ public class EmployeeController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEmployee(@PathVariable String id) {
-        boolean deleted = employeeService.deleteEmployee(id);
-        return deleted ? ResponseEntity.noContent().build()
-                      : ResponseEntity.notFound().build();
+        employeeService.deleteEmployee(id);
+        return ResponseEntity.noContent().build();
     }
 
     /**

@@ -1,6 +1,9 @@
 package employeemanagement.employee_management.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 import java.time.LocalDateTime;
 
@@ -20,12 +23,18 @@ public class Employee {
     @Column(name = "id", length = 50)
     private String id;
 
+    @NotBlank(message = "Employee name must not be blank")
+    @Size(max = 100, message = "Employee name must be at most 100 characters")
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
+    @NotBlank(message = "Email must not be blank")
+    @Email(message = "Email must be valid")
+    @Size(max = 100, message = "Email must be at most 100 characters")
     @Column(name = "email", unique = true, length = 100)
     private String email;
 
+    @Size(max = 20, message = "Phone number must be at most 20 characters")
     @Column(name = "phone", length = 20)
     private String phone;
 
@@ -33,6 +42,7 @@ public class Employee {
     @JoinColumn(name = "department_id", referencedColumnName = "id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
     private Department department;
 
+    @Size(max = 50, message = "Position must be at most 50 characters")
     @Column(name = "position", length = 50)
     private String position;
 
