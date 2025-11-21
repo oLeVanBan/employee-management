@@ -6,6 +6,7 @@ import employeemanagement.employee_management.exception.ValidationException;
 import employeemanagement.employee_management.mapper.DtoMapper;
 import employeemanagement.employee_management.model.Employee;
 import employeemanagement.employee_management.service.EmployeeService;
+import employeemanagement.employee_management.service.StatisticsService;
 import employeemanagement.employee_management.service.UtilityService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ public class EmployeeController {
     private final EmployeeService employeeService;
     private final UtilityService utilityService;
     private final DtoMapper dtoMapper;
+    private final StatisticsService statisticsService;
 
     // Field Injection using @Autowired - Less preferred but shown for demonstration
     @Autowired
@@ -39,10 +41,12 @@ public class EmployeeController {
      * Constructor Injection
      * Spring automatically injects the required beans
      */
-    public EmployeeController(EmployeeService employeeService, UtilityService utilityService, DtoMapper dtoMapper) {
+    public EmployeeController(EmployeeService employeeService, UtilityService utilityService,
+                             DtoMapper dtoMapper, StatisticsService statisticsService) {
         this.employeeService = employeeService;
         this.utilityService = utilityService;
         this.dtoMapper = dtoMapper;
+        this.statisticsService = statisticsService;
     }
 
     /**
@@ -173,5 +177,14 @@ public class EmployeeController {
         response.put("email", email);
         response.put("isValid", utilityService.isValidEmail(email));
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Get employee statistics (cached for 1 minute)
+     * GET /api/employees/statistics
+     */
+    @GetMapping("/statistics")
+    public ResponseEntity<Map<String, Object>> getStatistics() {
+        return ResponseEntity.ok(statisticsService.getEmployeeStatistics());
     }
 }
