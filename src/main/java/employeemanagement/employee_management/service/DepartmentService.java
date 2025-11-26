@@ -61,6 +61,9 @@ public class DepartmentService {
      * Update department
      */
     public Department updateDepartment(Long id, Department updatedDepartment) {
+        if (id == null) {
+            throw new IllegalArgumentException("Department id cannot be null");
+        }
         Department existing = departmentRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Department not found with id: " + id));
 
