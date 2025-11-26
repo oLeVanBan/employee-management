@@ -123,30 +123,65 @@ Department (1) ←──── (Many) Employee
 
 ### Department APIs
 
+#### 0. Login
+```bash
+# Tạo user thường (role USER)
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "newuser",
+    "password": "password123",
+    "role": "USER"
+  }'
+
+# Tạo user admin (role ADMIN)
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "newadmin",
+    "password": "admin456",
+    "role": "ADMIN"
+  }'
+
+# Login as admin
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "newadmin", "password": "admin456"}'
+
+# Login as user
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "newuser", "password": "password123"}'
+```
+
+
 #### 1. Create Department
 ```bash
 curl -X POST http://localhost:8080/api/departments \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{
-    "name": "Engineering",
-    "description": "Engineering Department"
+    "name": "Engineerin 2",
+    "description": "Engineering Department 2"
   }'
 ```
 
 #### 2. Get All Departments
 ```bash
-curl http://localhost:8080/api/departments
+curl -H "Authorization: Bearer YOUR_TOKEN_HERE" http://localhost:8080/api/departments
 ```
 
 #### 3. Get Department by ID
 ```bash
-curl http://localhost:8080/api/departments/1
+curl -X GET http://localhost:8080/api/employees \
+ -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 #### 4. Update Department by ID
 ```bash
 curl -X PUT http://localhost:8080/api/departments/1 \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{
     "name": "IT Update",
     "description": "Information Technology Department Update"
@@ -155,7 +190,7 @@ curl -X PUT http://localhost:8080/api/departments/1 \
 
 #### 5. Destroy Department by ID
 ```bash
-curl -X DELETE http://localhost:8080/api/departments/3
+curl -X DELETE http://localhost:8080/api/departments/3 -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 
@@ -165,6 +200,7 @@ curl -X DELETE http://localhost:8080/api/departments/3
 ```bash
 curl -X POST http://localhost:8080/api/employees \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{
     "name": "john doe",
     "email": "john@example.com",
@@ -178,7 +214,7 @@ curl -X POST http://localhost:8080/api/employees \
 
 #### 2. Search All Employees
 ```bash
-curl http://localhost:8080/api/employees?name=J&departmentName=IT
+curl http://localhost:8080/api/employees?name=J&departmentName=IT -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 **Response Example:**
 ```json
@@ -216,13 +252,14 @@ curl http://localhost:8080/api/employees?name=J&departmentName=IT
 
 #### 3. Get Employees in a Department
 ```bash
-curl http://localhost:8080/api/departments/1/employees
+curl http://localhost:8080/api/departments/1/employees -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
 
 #### 4. Update Employee
 ```bash
 curl -X PUT http://localhost:8080/api/employees/EMP-20251113-0001 \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{
     "name": "john doe update",
     "email": "johnuu@example.com",
@@ -236,8 +273,13 @@ curl -X PUT http://localhost:8080/api/employees/EMP-20251113-0001 \
 
 #### 5. Destroy Employees
 ```bash
-curl -X DELETE http://localhost:8080/api/employees/EMP-20251113-0001
+curl -X DELETE http://localhost:8080/api/employees/EMP-20251113-0001 -H "Authorization: Bearer YOUR_TOKEN_HERE"
 ```
+
+
+
+
+###
 
 ---
 
