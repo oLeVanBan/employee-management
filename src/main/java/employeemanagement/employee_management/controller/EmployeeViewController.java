@@ -10,6 +10,7 @@ import employeemanagement.employee_management.model.Department;
 import employeemanagement.employee_management.model.Employee;
 import employeemanagement.employee_management.service.DepartmentService;
 import employeemanagement.employee_management.service.EmployeeService;
+import employeemanagement.employee_management.service.StatisticsService;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -34,13 +36,16 @@ public class EmployeeViewController {
 
     private final EmployeeService employeeService;
     private final DepartmentService departmentService;
+    private final StatisticsService statisticsService;
     private final DtoMapper dtoMapper;
 
     public EmployeeViewController(EmployeeService employeeService,
                                   DepartmentService departmentService,
+                                  StatisticsService statisticsService,
                                   DtoMapper dtoMapper) {
         this.employeeService = employeeService;
         this.departmentService = departmentService;
+        this.statisticsService = statisticsService;
         this.dtoMapper = dtoMapper;
     }
 
@@ -56,6 +61,17 @@ public class EmployeeViewController {
         model.addAttribute("searchDepartment", departmentName);
         model.addAttribute("departments", getDepartmentOptions());
         return "employees/list";
+    }
+
+    /**
+     * Show statistics page
+     * GET /employees/statistics
+     */
+    @GetMapping("/statistics")
+    public String showStatistics(Model model) {
+        Map<String, Object> stats = statisticsService.getComprehensiveReport();
+        model.addAttribute("stats", stats);
+        return "employees/statistics";
     }
 
     @GetMapping("/new")

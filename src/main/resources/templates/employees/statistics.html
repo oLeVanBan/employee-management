@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Statistics</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-light">
+<div class="container py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1">Employee Statistics & Reports</h1>
+            <p class="text-muted mb-0">Comprehensive analytics and insights</p>
+        </div>
+        <a class="btn btn-outline-secondary" th:href="@{/employees}">Back to Employee List</a>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Total Employees</h5>
+                    <p class="display-4 fw-bold text-primary" th:text="${stats.totalEmployees}">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Total Departments</h5>
+                    <p class="display-4 fw-bold text-success" th:text="${stats.totalDepartments}">0</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Positions</h5>
+                    <p class="display-4 fw-bold text-warning" th:text="${stats.employeesByPosition != null ? stats.employeesByPosition.size() : 0}">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Employees by Department -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Employees by Department</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="departmentChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Employees by Position</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="positionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Details Table -->
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">Department Details</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Department Name</th>
+                        <th scope="col">Employee Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="dept : ${stats.departmentDetails}">
+                        <td th:text="${dept.departmentName}">Department</td>
+                        <td>
+                            <span class="badge bg-primary" th:text="${dept.employeeCount}">0</span>
+                        </td>
+                    </tr>
+                    <tr th:if="${stats.departmentDetails == null or stats.departmentDetails.isEmpty()}">
+                        <td colspan="4" class="text-center text-muted">No departments found</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="text-center text-muted small">
+        Report generated at: <span th:text="${#dates.format(new java.util.Date(stats.generatedAt), 'dd/MM/yyyy HH:mm:ss')}"></span>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    // Data from Thymeleaf
+    const employeesByDepartment = /*[[${stats.employeesByDepartment}]]*/ {};
+    const employeesByPosition = /*[[${stats.employeesByPosition}]]*/ {};
+
+    // Department Chart
+    const deptCtx = document.getElementById('departmentChart').getContext('2d');
+    new Chart(deptCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(employeesByDepartment),
+            datasets: [{
+                label: 'Number of Employees',
+                data: Object.values(employeesByDepartment),
+                backgroundColor: 'rgba(13, 110, 253, 0.8)',
+                borderColor: 'rgba(13, 110, 253, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    // Position Chart
+    const posCtx = document.getElementById('positionChart').getContext('2d');
+    new Chart(posCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(employeesByPosition),
+            datasets: [{
+                label: 'Number of Employees',
+                data: Object.values(employeesByPosition),
+                backgroundColor: [
+                    'rgba(25, 135, 84, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(220, 53, 69, 0.8)',
+                    'rgba(13, 202, 240, 0.8)',
+                    'rgba(108, 117, 125, 0.8)'
+                ],
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

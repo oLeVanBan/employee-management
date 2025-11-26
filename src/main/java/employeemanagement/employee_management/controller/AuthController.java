@@ -1,7 +1,6 @@
 package employeemanagement.employee_management.controller;
 
 import employeemanagement.employee_management.dto.AuthRequest;
-import employeemanagement.employee_management.dto.AuthResponse;
 import employeemanagement.employee_management.model.User;
 import employeemanagement.employee_management.security.JwtTokenProvider;
 import employeemanagement.employee_management.service.UserService;
@@ -80,12 +79,18 @@ public class AuthController {
 
             String token = jwtTokenProvider.generateToken(authRequest.getUsername());
 
-            // Get roles from authentication
-            String roles = authentication.getAuthorities().stream()
+            // Get roles from authentication as List
+            var rolesList = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
-                    .collect(Collectors.joining(","));
+                    .collect(Collectors.toList());
 
-            AuthResponse response = new AuthResponse(token, authRequest.getUsername(), roles);
+            // Return response with roles array
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("type", "Bearer");
+            response.put("username", authRequest.getUsername());
+            response.put("roles", rolesList);
+
             return ResponseEntity.ok(response);
 
         } catch (AuthenticationException e) {

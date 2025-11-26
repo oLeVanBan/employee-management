@@ -52,7 +52,6 @@ public class EmployeeService {
      * @param employee Employee data
      * @return Created employee
      */
-    @SuppressWarnings("null")
     public Employee createEmployee(Employee employee) {
         employee.setDepartment(resolveDepartment(employee.getDepartment()));
 
@@ -170,7 +169,6 @@ public class EmployeeService {
     /**
      * Update employee
      */
-    @SuppressWarnings("null")
     public Employee updateEmployee(String id, Employee updatedEmployee) {
         Objects.requireNonNull(id, "Employee id must not be null");
         Employee employee = employeeRepository.findById(id)

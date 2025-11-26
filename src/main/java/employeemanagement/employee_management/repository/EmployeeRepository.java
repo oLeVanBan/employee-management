@@ -3,8 +3,8 @@ package employeemanagement.employee_management.repository;
 import employeemanagement.employee_management.model.Employee;
 import employeemanagement.employee_management.model.Department;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -54,4 +54,28 @@ public interface EmployeeRepository extends JpaRepository<Employee, String> {
      * Check if employee exists by email
      */
     boolean existsByEmail(String email);
+
+    /**
+     * Count total employees
+     */
+    @Query("SELECT COUNT(e) FROM Employee e")
+    Long countTotalEmployees();
+
+    /**
+     * Count employees by department
+     */
+    @Query("SELECT e.department.name as departmentName, COUNT(e) as count " +
+           "FROM Employee e " +
+           "GROUP BY e.department.id, e.department.name " +
+           "ORDER BY COUNT(e) DESC")
+    List<Object[]> countEmployeesByDepartment();
+
+    /**
+     * Get employee statistics by position
+     */
+    @Query("SELECT e.position as position, COUNT(e) as count " +
+           "FROM Employee e " +
+           "GROUP BY e.position " +
+           "ORDER BY COUNT(e) DESC")
+    List<Object[]> countEmployeesByPosition();
 }
